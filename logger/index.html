@@ -146,7 +146,9 @@ function shotCalc(e){
   +(bp==='Header'?-0.15:bp==='Weak Foot'?-0.2:0)+si+as+(pr==='Low'?0.25:pr==='High'?-0.35:0);
  var app=Math.round(1000/(1+Math.exp(-l)))/1000;
  var a=Math.min(0.999,Math.max(0.001,app));
- var z=0.593+1.566*Math.log(a/(1-a))+(pr==='High'?-1.153:0)+(bp==='Header'?-0.55:0);
+ /* model Pilica (arkusz Szanse): główki z odległości, pozostałe z logitu xG aplikacji; sam na sam bez kary za presję */
+ var z=bp==='Header'?7.177-4.41*Math.log(Math.max(0.5,g.dist))+(pr==='High'?-0.367:0)
+  :0.593+1.566*Math.log(a/(1-a))+(pr==='High'&&!isSam(e)?-1.153:0);
  return {dist:g.dist,angle:g.angle,app:app,xg:Math.round(1000/(1+Math.exp(-z)))/1000};
 }
 function inBigZone(x,y,team){
