@@ -81,7 +81,7 @@ var DB={roster:ROSTER0.slice(),matches:[],cur:null};
 var memOnly=false;
 function loadDB(){try{var s=localStorage.getItem(KEY);if(s){var d=JSON.parse(s);if(d&&d.matches){DB=d;}}}catch(e){memOnly=true;}}
 function saveDB(){try{localStorage.setItem(KEY,JSON.stringify(DB));}catch(e){memOnly=true;}}
-var UI={tab:'log',half:1,pts:[],form:null,err:'',confirm:null,
+var UI={heat:true,tab:'log',half:1,pts:[],form:null,err:'',confirm:null,
  map:{scope:'Ten mecz',team:'Obie',period:'Cały mecz',view:'Punkty',player:'Wszyscy',types:{shot:true,duel:true,air:true,odb:true,str:true,wej:false,cross:false,sfg:false}},
  sum:{scope:'Ten mecz'},msg:''};
 function M(){for(var i=0;i<DB.matches.length;i++){if(DB.matches[i].id===DB.cur){return DB.matches[i];}}return null;}
@@ -304,11 +304,27 @@ function pitchLines(){
  +'<circle cx="11.5" cy="34" r=".4" fill="#6F9C84"/><circle cx="93.5" cy="34" r=".4" fill="#6F9C84"/>'
  +'<path d="M0 30.34h-1.2v7.32H0M105 30.34h1.2v7.32H105" '+s+'/>';
 }
-var ZONE='<polygon points="105,30.34 88.5,13.84 84.85,13.84 84.85,54.16 88.5,54.16 105,37.66" fill="#7CC4FF" fill-opacity=".12" stroke="#7CC4FF" stroke-width=".2" stroke-dasharray="1 .8"/>'
- +'<polygon points="0,30.34 16.5,13.84 20.15,13.84 20.15,54.16 16.5,54.16 0,37.66" fill="#FFB066" fill-opacity=".12" stroke="#FFB066" stroke-width=".2" stroke-dasharray="1 .8"/>'
+var ZONE='<polygon points="105,30.34 88.5,13.84 84.85,13.84 84.85,54.16 88.5,54.16 105,37.66" fill="none" stroke="#7CC4FF" stroke-width=".25" stroke-dasharray="1 .8"/>'
+ +'<polygon points="0,30.34 16.5,13.84 20.15,13.84 20.15,54.16 16.5,54.16 0,37.66" fill="none" stroke="#FFB066" stroke-width=".25" stroke-dasharray="1 .8"/>'
  +'<line x1="26.25" y1=".5" x2="26.25" y2="67.5" stroke="#C5CEDA" stroke-width=".2" stroke-dasharray=".6 1.2"/><line x1="78.75" y1=".5" x2="78.75" y2="67.5" stroke="#C5CEDA" stroke-width=".2" stroke-dasharray=".6 1.2"/>'
  +'<line x1=".5" y1="19.34" x2="104.5" y2="19.34" stroke="#C5CEDA" stroke-width=".2" stroke-dasharray=".6 1.2"/><line x1=".5" y1="48.66" x2="104.5" y2="48.66" stroke="#C5CEDA" stroke-width=".2" stroke-dasharray=".6 1.2"/>';
 function sectorOf(e){var y=(e.team==='R'&&e.type!=='duel')?68-e.y:e.y;return y<19.34?'Lewy boczny':y>48.66?'Prawy boczny':'Środkowy';}
+var HEAT=null;
+function heatA(xg){return Math.min(0.8,Math.sqrt(xg)*1.1);}
+function heatImg(){
+ if(!UI.heat){return '';}
+ if(!HEAT){
+  try{var c=document.createElement('canvas');c.width=210;c.height=136;var g=c.getContext('2d'),im=g.createImageData(210,136),i,j,k,x,v;
+   for(j=0;j<136;j++){for(i=0;i<210;i++){x=(i+0.5)/2;
+    v=shotCalc({x:x,y:(j+0.5)/2,team:x>=52.5?'P':'R',body:'Lepsza noga',phase:'Atak pozycyjny',atype:'Brak',press:'Średnia · 1–2 m',def:'1',gk:'W bramce'}).xg;
+    k=(j*210+i)*4;im.data[k]=255;im.data[k+1]=236;im.data[k+2]=150;im.data[k+3]=Math.round(255*heatA(v));}}
+   g.putImageData(im,0,0);HEAT=c.toDataURL('image/png');}catch(e){HEAT='';}
+ }
+ return HEAT?'<image href="'+HEAT+'" x="0" y="0" width="105" height="68" preserveAspectRatio="none" pointer-events="none"/>':'';
+}
+function heatLegend(){
+ return '<div class="row" style="gap:6px 14px;font-size:12px;color:var(--sub)"><span>Tło: xG typowego strzału z danego miejsca</span>'+[0.02,0.1,0.3,0.5].map(function(v){return '<span style="display:inline-flex;align-items:center;gap:6px"><span style="width:18px;height:18px;border-radius:4px;border:1px solid var(--chipb);background:rgba(255,236,150,'+heatA(v)+')"></span>'+String(v).replace('.',',')+'</span>';}).join('')+'</div>';
+}
 function zoneOf(e){var x=(e.team==='R'&&e.type!=='duel')?105-e.x:e.x;return x<26.25?'Niska':x<78.75?'Średnia':'Wysoka';}
 
 /* ---------- widok: nagłówek ---------- */
@@ -338,9 +354,9 @@ function logHTML(){
   return '<tr class="clk" data-act="edit" data-id="'+e.id+'"><td>'+(e.half===1?'I':'II')+' · '+esc(e.min||'?')+"'"+(e.vt?' <span style="color:var(--mut)">('+esc(e.vt)+')</span>':'')+'</td><td>'+TNAME[e.type]+'</td><td style="color:'+(e.team==='R'&&e.type!=='duel'?CR:CP)+'">'+esc(e.team==='R'&&e.type!=='duel'?'Rywal':disp(e.player))+'</td><td>'+esc(resText(e))+'</td><td class="tag">'+esc(t.join(' · '))+'</td><td class="num"><button class="btn" data-act="edit" data-id="'+e.id+'" style="min-height:32px">Edytuj</button> <button class="btn warn" data-act="rowdel" data-id="'+e.id+'" style="min-height:32px">'+(UI.confirm==='row'+e.id?'Na pewno?':'Usuń')+'</button></td></tr>';
  }).join('');
  return '<div class="cols"><div class="left">'
- +'<div class="card"><div class="row" style="justify-content:space-between;margin-bottom:10px"><h2 style="margin:0">Boisko</h2><span class="hint">Pilica zawsze atakuje w prawo. Pierwsze kliknięcie: miejsce zdarzenia. Drugie: miejsce asysty lub dogrania. Pola przerywane: strefy dużej szansy.</span></div>'
- +'<svg class="pitch click" id="pitch" viewBox="-2 -2 109 72" role="img" aria-label="Boisko do zaznaczania miejsca zdarzenia">'+ZONE+pitchLines()+'<g opacity=".4" pointer-events="none">'+evs.map(iconSVG).join('')+'</g><g pointer-events="none">'+ptMarks()+'</g></svg>'
- +'<div class="row" style="margin-top:10px"><button class="btn" data-act="clearpts">Wyczyść punkty</button><span class="hint">'+(UI.pts[0]?'Punkt 1: '+UI.pts[0].x+' m, '+UI.pts[0].y+' m'+(UI.pts[1]?' · punkt 2: '+UI.pts[1].x+' m, '+UI.pts[1].y+' m':''):'Nie zaznaczono miejsca.')+'</span></div></div>'
+ +'<div class="card"><div class="row" style="justify-content:space-between;margin-bottom:10px"><h2 style="margin:0">Boisko</h2><span class="hint">Pilica zawsze atakuje w prawo. Pierwsze kliknięcie: miejsce zdarzenia. Drugie: miejsce asysty lub dogrania. Obrysy przerywane: strefy dużej szansy.</span></div>'
+ +'<svg class="pitch click" id="pitch" viewBox="-2 -2 109 72" role="img" aria-label="Boisko do zaznaczania miejsca zdarzenia">'+heatImg()+ZONE+pitchLines()+'<g opacity=".4" pointer-events="none">'+evs.map(iconSVG).join('')+'</g><g pointer-events="none">'+ptMarks()+'</g></svg>'
+ +'<div class="row" style="margin-top:10px"><button class="btn" data-act="clearpts">Wyczyść punkty</button><button class="chip'+(UI.heat?' on':'')+'" data-act="heat" aria-pressed="'+UI.heat+'">Mapa xG</button><span class="hint">'+(UI.pts[0]?'Punkt 1: '+UI.pts[0].x+' m, '+UI.pts[0].y+' m'+(UI.pts[1]?' · punkt 2: '+UI.pts[1].x+' m, '+UI.pts[1].y+' m':''):'Nie zaznaczono miejsca.')+'</span></div>'+(UI.heat?'<div style="margin-top:10px">'+heatLegend()+'</div>':'')+'</div>'
  +'<div class="card"><h2>Zdarzenia meczu ('+evs.length+')</h2>'+(evs.length?'<div class="scroll"><table><thead><tr><th>Czas</th><th>Zdarzenie</th><th>Zawodnik</th><th>Wynik</th><th>Dopisane automatycznie</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div><p class="note">Usuwanie wymaga dwóch kliknięć: „Usuń”, a potem „Na pewno?”.</p>':'<p class="hint">Jeszcze nic nie zalogowano.</p>')+'</div>'
  +'</div><div class="right"><div class="card" id="panelCard">'+(UI.form?formHTML():pickerHTML())+'</div></div></div>';
 }
@@ -455,10 +471,10 @@ function mapHTML(){
  names.sort(function(a,b){return DB.roster.indexOf(a)-DB.roster.indexOf(b);});
  var tl=[['shot','Strzał','goal'],['duel','Pojedynek 1v1','dW'],['air','W powietrzu','aW'],['odb','Odbiór','odb'],['str','Strata','str'],['wej','Wejście w pk','wej'],['cross','Dośrodkowanie','cross'],['sfg','SFG','sfg']];
  return '<div class="card"><div class="row" style="justify-content:space-between;margin-bottom:10px"><h2 style="margin:0">Mapa zdarzeń</h2><span class="hint">Wyróżnione: '+main.length+' z '+all.length+' zdarzeń</span></div>'
- +'<div class="row" style="gap:10px 22px;margin-bottom:10px">'+chipRow('Zakres','mscope',['Ten mecz','Sezon'],F.scope)+chipRow('Drużyna','mteam',['Obie','Pilica','Rywal'],F.team)+chipRow('Okres','mperiod',['Cały mecz','I połowa','II połowa'],F.period)+chipRow('Widok','mview',['Punkty','Strefy'],F.view)+'</div>'
+ +'<div class="row" style="gap:10px 22px;margin-bottom:10px">'+chipRow('Zakres','mscope',['Ten mecz','Sezon'],F.scope)+chipRow('Drużyna','mteam',['Obie','Pilica','Rywal'],F.team)+chipRow('Okres','mperiod',['Cały mecz','I połowa','II połowa'],F.period)+chipRow('Widok','mview',['Punkty','Strefy'],F.view)+'<button class="chip'+(UI.heat?' on':'')+'" data-act="heat" aria-pressed="'+UI.heat+'">Mapa xG</button></div>'
  +'<div style="margin-bottom:10px">'+chipRow('Zawodnik','mplayer',['Wszyscy'].concat(names),F.player)+'</div>'
  +'<div class="row" style="margin-bottom:12px"><span style="font-size:12px;color:var(--mut)">Pokaż</span>'+tl.map(function(t){return '<button class="chip" data-act="mtype" data-v="'+t[0]+'" aria-pressed="'+F.types[t[0]]+'" style="display:flex;align-items:center;gap:8px;background:var(--card);border-color:'+(F.types[t[0]]?'var(--acc)':'var(--chipb)')+';opacity:'+(F.types[t[0]]?1:0.55)+'"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">'+LEG[t[2]]+'</svg>'+t[1]+' <span style="color:var(--sub)">'+cnt[t[0]]+'</span></button>';}).join('')+'</div>'
- +'<div class="cols"><div style="flex:999 1 560px;min-width:0"><svg class="pitch" viewBox="-2 -2 109 72" role="img" aria-label="Mapa zdarzeń na boisku">'+ZONE+pitchLines()
+ +'<div class="cols"><div style="flex:999 1 560px;min-width:0"><svg class="pitch" viewBox="-2 -2 109 72" role="img" aria-label="Mapa zdarzeń na boisku">'+heatImg()+ZONE+pitchLines()
  +(F.view==='Punkty'?'<g opacity=".18">'+dim.map(iconSVG).join('')+'</g><g>'+main.map(iconSVG).join('')+'</g>':zones)+'</svg></div>'
  +'<div style="flex:1 1 280px;min-width:0"><h3 style="margin-top:0">Legenda</h3><p class="hint" style="margin:0 0 10px">Niebieski: Pilica, pomarańczowy: rywal.</p>'
  +'<div class="lbl">Strzał (większe koło to wyższe xG)</div><div class="legend">'+lg('goal','Gol')+lg('saved','Obroniony')+lg('blk','Zablokowany')+lg('off','Niecelny')+'</div>'
@@ -641,6 +657,7 @@ document.addEventListener('click',function(ev){
   case 'save':saveForm();return;
   case 'cancel':UI.form=null;UI.err='';UI.pts=[];break;
   case 'clearpts':UI.pts=[];break;
+  case 'heat':UI.heat=!UI.heat;break;
   case 'del':if(UI.confirm!=='del'+b.dataset.id){UI.confirm='del'+b.dataset.id;break;}
    m.events=m.events.filter(function(e){return e.id!==b.dataset.id;});saveDB();UI.form=null;UI.pts=[];UI.confirm=null;UI.msg='Usunięto zdarzenie.';break;
   case 'rowdel':if(UI.confirm!=='row'+b.dataset.id){UI.confirm='row'+b.dataset.id;break;}
