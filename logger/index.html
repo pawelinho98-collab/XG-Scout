@@ -335,13 +335,13 @@ function logHTML(){
  var evs=sorted(m);
  var rows=evs.slice().reverse().map(function(e){
   var t=autoTags(e);
-  return '<tr class="clk" data-act="edit" data-id="'+e.id+'"><td>'+(e.half===1?'I':'II')+' · '+esc(e.min||'?')+"'"+(e.vt?' <span style="color:var(--mut)">('+esc(e.vt)+')</span>':'')+'</td><td>'+TNAME[e.type]+'</td><td style="color:'+(e.team==='R'&&e.type!=='duel'?CR:CP)+'">'+esc(e.team==='R'&&e.type!=='duel'?'Rywal':disp(e.player))+'</td><td>'+esc(resText(e))+'</td><td class="tag">'+esc(t.join(' · '))+'</td></tr>';
+  return '<tr class="clk" data-act="edit" data-id="'+e.id+'"><td>'+(e.half===1?'I':'II')+' · '+esc(e.min||'?')+"'"+(e.vt?' <span style="color:var(--mut)">('+esc(e.vt)+')</span>':'')+'</td><td>'+TNAME[e.type]+'</td><td style="color:'+(e.team==='R'&&e.type!=='duel'?CR:CP)+'">'+esc(e.team==='R'&&e.type!=='duel'?'Rywal':disp(e.player))+'</td><td>'+esc(resText(e))+'</td><td class="tag">'+esc(t.join(' · '))+'</td><td class="num"><button class="btn" data-act="edit" data-id="'+e.id+'" style="min-height:32px">Edytuj</button> <button class="btn warn" data-act="rowdel" data-id="'+e.id+'" style="min-height:32px">'+(UI.confirm==='row'+e.id?'Na pewno?':'Usuń')+'</button></td></tr>';
  }).join('');
  return '<div class="cols"><div class="left">'
  +'<div class="card sticky"><div class="row" style="justify-content:space-between;margin-bottom:10px"><h2 style="margin:0">Boisko</h2><span class="hint">Pilica zawsze atakuje w prawo. Pierwsze kliknięcie: miejsce zdarzenia. Drugie: miejsce asysty lub dogrania. Pola przerywane: strefy dużej szansy.</span></div>'
  +'<svg class="pitch click" id="pitch" viewBox="-2 -2 109 72" role="img" aria-label="Boisko do zaznaczania miejsca zdarzenia">'+ZONE+pitchLines()+'<g opacity=".4" pointer-events="none">'+evs.map(iconSVG).join('')+'</g><g pointer-events="none">'+ptMarks()+'</g></svg>'
  +'<div class="row" style="margin-top:10px"><button class="btn" data-act="clearpts">Wyczyść punkty</button><span class="hint">'+(UI.pts[0]?'Punkt 1: '+UI.pts[0].x+' m, '+UI.pts[0].y+' m'+(UI.pts[1]?' · punkt 2: '+UI.pts[1].x+' m, '+UI.pts[1].y+' m':''):'Nie zaznaczono miejsca.')+'</span></div></div>'
- +'<div class="card"><h2>Zdarzenia meczu ('+evs.length+')</h2>'+(evs.length?'<div class="scroll"><table><thead><tr><th>Czas</th><th>Zdarzenie</th><th>Zawodnik</th><th>Wynik</th><th>Dopisane automatycznie</th></tr></thead><tbody>'+rows+'</tbody></table></div><p class="note">Kliknij wiersz, żeby poprawić albo usunąć zdarzenie.</p>':'<p class="hint">Jeszcze nic nie zalogowano.</p>')+'</div>'
+ +'<div class="card"><h2>Zdarzenia meczu ('+evs.length+')</h2>'+(evs.length?'<div class="scroll"><table><thead><tr><th>Czas</th><th>Zdarzenie</th><th>Zawodnik</th><th>Wynik</th><th>Dopisane automatycznie</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div><p class="note">Usuwanie wymaga dwóch kliknięć: „Usuń”, a potem „Na pewno?”.</p>':'<p class="hint">Jeszcze nic nie zalogowano.</p>')+'</div>'
  +'</div><div class="right"><div class="card" id="panelCard">'+(UI.form?formHTML():pickerHTML())+'</div></div></div>';
 }
 function pickerHTML(){
@@ -630,7 +630,7 @@ document.addEventListener('click',function(ev){
  if(pitch){var p=svgPoint(pitch,ev);if(UI.pts.length>=2){UI.pts=[p];}else{UI.pts.push(p);}render();return;}
  var b=ev.target.closest&&ev.target.closest('[data-act]');if(!b){return;}
  var a=b.dataset.act,v=b.dataset.v,m=M(),L;
- if(a!=='del'&&a!=='mdel'){UI.confirm=null;}
+ if(a!=='del'&&a!=='mdel'&&a!=='rowdel'){UI.confirm=null;}
  switch(a){
   case 'tab':UI.tab=v;UI.err='';UI.msg='';break;
   case 'half':UI.half=Number(v);if(UI.form){UI.form.half=UI.half;}break;
@@ -643,6 +643,8 @@ document.addEventListener('click',function(ev){
   case 'clearpts':UI.pts=[];break;
   case 'del':if(UI.confirm!=='del'+b.dataset.id){UI.confirm='del'+b.dataset.id;break;}
    m.events=m.events.filter(function(e){return e.id!==b.dataset.id;});saveDB();UI.form=null;UI.pts=[];UI.confirm=null;UI.msg='Usunięto zdarzenie.';break;
+  case 'rowdel':if(UI.confirm!=='row'+b.dataset.id){UI.confirm='row'+b.dataset.id;break;}
+   m.events=m.events.filter(function(e){return e.id!==b.dataset.id;});saveDB();if(UI.form&&UI.form.editId===b.dataset.id){UI.form=null;UI.pts=[];}UI.confirm=null;UI.msg='Usunięto zdarzenie.';break;
   case 'mscope':UI.map.scope=v;UI.map.player='Wszyscy';break;
   case 'mteam':UI.map.team=v;break;
   case 'mperiod':UI.map.period=v;break;
