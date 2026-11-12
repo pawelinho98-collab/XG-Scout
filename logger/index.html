@@ -189,24 +189,34 @@ var DEFS={
  str:{d:{team:'Pilica',player:'',kind:'Niecelne podanie',danger:'Nie',goal:'Nie',note:''},
   f:[{k:'team',l:'Drużyna',o:TEAM},{k:'player',l:'Zawodnik',o:pl,show:isP},{k:'kind',l:'Typ',o:['Niecelne podanie','Błąd techniczny'],note:'Stratę po przegranym pojedynku loguj jako pojedynek.'},
    {k:'danger',l:'Groźna: rywal może wyjść z kontrą',o:TN},{k:'goal',l:'Doprowadziła do bramki',o:TN}]},
- wej:{d:{team:'Pilica',player:'',how:'Podanie',contacts:1,end:'Strata',note:''},
-  f:[{k:'team',l:'Drużyna',o:TEAM},{k:'player',l:'Kto wszedł',o:pl,show:isP},{k:'how',l:'Sposób wejścia',o:['Podanie','Drybling','Dośrodkowanie','SFG']},
-   {k:'contacts',l:'Kontakty z piłką w polu karnym',type:'num'},{k:'end',l:'Jak się skończyło',o:['Strzał','Strata','Wybicie rywala','Wyjście z pola karnego']}]},
- cross:{d:{team:'Pilica',player:'',res:'Niecelne',shot:'Nie',note:''},
+ wej:{d:{team:'Pilica',how:'Podanie',passer:'Brak',player:'',tseq:[],contacts:1,end:'Strata',note:''},
+  f:[{k:'team',l:'Drużyna',o:TEAM},{k:'how',l:'Sposób wejścia',o:['Podanie','Drybling','Dośrodkowanie','SFG']},
+   {k:'passer',l:'Kto zagrał piłkę w pole karne',o:plB,show:function(f){return isP(f)&&f.how!=='Drybling';}},
+   {k:'player',l:'Kto wszedł z piłką albo przyjął ją w polu karnym',o:pl,show:isP},
+   {k:'tseq',l:'Kontakty w polu karnym: kliknij zawodnika przy każdym jego kontakcie',type:'pcount',show:isP},
+   {k:'contacts',l:'Kontakty z piłką w polu karnym',type:'num',show:function(f){return !isP(f);}},
+   {k:'end',l:'Jak się skończyło',o:['Strzał','Strata','Wybicie rywala','Wyjście z pola karnego']}]},
+ cross:{d:{team:'Pilica',player:'',res:'Niecelne',tseq:[],contacts:1,shot:'Nie',note:''},
   f:[{k:'team',l:'Drużyna',o:TEAM},{k:'player',l:'Kto dośrodkował',o:pl,show:isP,note:'Pierwsze kliknięcie na boisku to miejsce startu, drugie to miejsce dogrania.'},
-   {k:'res',l:'Wynik',o:['Celne','Niecelne','Zablokowane']},{k:'shot',l:'Zakończone strzałem',o:TN}]},
- sfg:{d:{team:'Pilica',kind:'Rzut rożny',player:'',won:'Brak',play:'Dośrodkowanie',acc:'Niecelne',first:'Rywal',shot:'Nie',note:''},
+   {k:'res',l:'Wynik',o:['Celne','Niecelne','Zablokowane']},
+   {k:'tseq',l:'Kontakty w polu karnym po dośrodkowaniu: kliknij zawodnika przy każdym kontakcie',type:'pcount',show:function(f){return isP(f)&&f.res==='Celne';}},
+   {k:'contacts',l:'Kontakty z piłką w polu karnym',type:'num',show:function(f){return !isP(f)&&f.res==='Celne';}},
+   {k:'shot',l:'Zakończone strzałem',o:TN}]},
+ sfg:{d:{team:'Pilica',kind:'Rzut rożny',player:'',won:'Brak',play:'Dośrodkowanie',acc:'Niecelne',tseq:[],contacts:1,first:'Rywal',shot:'Nie',note:''},
   f:[{k:'team',l:'Drużyna',o:TEAM},{k:'kind',l:'Typ',o:['Rzut rożny','Rzut wolny','Daleki aut','Karny']},{k:'player',l:'Wykonawca',o:pl,show:isP},
    {k:'won',l:'Kto wywalczył',o:plB,show:isP,note:'Po faulu zaznaczonym w pojedynku to pole wypełnia się samo.'},
    {k:'play',l:'Rozegranie',o:['Dośrodkowanie','Krótko','Strzał'],show:function(f){return f.kind!=='Karny';}},
    {k:'acc',l:'Dośrodkowanie',o:['Celne','Niecelne'],show:function(f){return f.kind!=='Karny'&&f.play==='Dośrodkowanie';}},
+   {k:'tseq',l:'Kontakty w polu karnym po dośrodkowaniu: kliknij zawodnika przy każdym kontakcie',type:'pcount',show:function(f){return isP(f)&&f.kind!=='Karny'&&f.play==='Dośrodkowanie'&&f.acc==='Celne';}},
+   {k:'contacts',l:'Kontakty z piłką w polu karnym',type:'num',show:function(f){return !isP(f)&&f.kind!=='Karny'&&f.play==='Dośrodkowanie'&&f.acc==='Celne';}},
    {k:'first',l:'Pierwszy kontakt',o:TEAM,show:function(f){return f.kind!=='Karny';}},
    {k:'shot',l:'Zakończone strzałem',o:TN,show:function(f){return f.kind!=='Karny';}}]}
 };
 
 /* ---------- pochodne znaczniki ---------- */
+function kontOf(e){return e.team==='P'?(e.tseq?e.tseq.length:(Number(e.contacts)||0)):(Number(e.contacts)||0);}
 function derive(e){
- var d={odb:0,odbK:0,str:0,strG:0,duel:0,duelKind:'',duelSide:'',duelWon:0,duelPlayer:'',wej:0,sfgWon:'',big:0,sam:0,empty:0,goal:0,onT:0,cats:[]};
+ var d={kont:0,odb:0,odbK:0,str:0,strG:0,duel:0,duelKind:'',duelSide:'',duelWon:0,duelPlayer:'',wej:0,sfgWon:'',big:0,sam:0,empty:0,goal:0,onT:0,cats:[]};
  if(e.type==='shot'){
   d.goal=e.res==='Gol'?1:0;d.onT=(e.res==='Gol'||e.res==='Obroniony')?1:0;
   d.big=(e.phase==='Karny'||inBigZone(e.x,e.y,e.team))?1:0;
@@ -231,6 +241,7 @@ function derive(e){
  if(e.type==='wej'){d.wej=1;}
  if(e.type==='cross'&&e.res==='Celne'){d.wej=1;}
  if(e.type==='sfg'&&e.kind!=='Karny'&&e.play==='Dośrodkowanie'&&e.acc==='Celne'){d.wej=1;}
+ if(d.wej){d.kont=kontOf(e);}
  if(d.odb){d.cats.push('odb');}
  if(d.str){d.cats.push('str');}
  if(e.type==='wej'||e.type==='cross'||e.type==='sfg'){d.cats.push(e.type);}
@@ -243,7 +254,7 @@ function autoTags(e){
  if(e.type==='duel'){if(d.odbK){t.push('odbiór do kontry');}else if(d.odb){t.push('odbiór');}if(d.strG){t.push('groźna strata');}else if(d.str){t.push('strata');}if(d.sfgWon){t.push('wywalczony stały fragment');}}
  if(e.type==='odb'&&d.odbK){t.push('odbiór do kontry');}
  if(e.type==='str'&&d.strG){t.push('groźna strata');}
- if((e.type==='cross'||e.type==='sfg')&&d.wej){t.push('wejście w pole karne');}
+ if((e.type==='cross'||e.type==='sfg')&&d.wej){t.push('wejście w pole karne · kontakty: '+d.kont);}
  if((d.odb||e.type==='odb')&&((e.team==='P'&&e.x>52.5)||(e.team==='R'&&e.x<52.5))){t.push('połowa rywala');}
  if(e.goal==='Tak'){t.push('doprowadziło do bramki');}
  return t;
@@ -254,7 +265,7 @@ function resText(e){
   case 'duel':return e.kind+' · '+e.side.toLowerCase()+' · '+e.res.toLowerCase()+' · '+e.out.toLowerCase();
   case 'odb':return e.kind;
   case 'str':return e.kind;
-  case 'wej':return e.how+' · kontakty: '+e.contacts+' · '+e.end.toLowerCase();
+  case 'wej':return e.how+(e.passer&&e.passer!=='Brak'?' od: '+disp(e.passer):'')+' · kontakty: '+kontOf(e)+' · '+e.end.toLowerCase();
   case 'cross':return e.res+(e.shot==='Tak'?' · strzał':'');
   case 'sfg':return e.kind+(e.kind!=='Karny'?' · '+e.play.toLowerCase():'');
  }
@@ -382,6 +393,12 @@ function pickerHTML(){
 function fieldHTML(fd,f){
  if(fd.show&&!fd.show(f)){return '';}
  if(fd.type==='num'){return '<div class="fld"><div class="lbl">'+fd.l+'</div><div class="num"><button type="button" data-act="num" data-d="-1" data-k="'+fd.k+'" aria-label="Odejmij">−</button><span>'+f[fd.k]+'</span><button type="button" class="pri" data-act="num" data-d="1" data-k="'+fd.k+'" aria-label="Dodaj">+</button></div></div>';}
+ if(fd.type==='pcount'){
+  var seq=f[fd.k]||[],names=pl().slice();seq.forEach(function(n){if(names.indexOf(n)<0){names.push(n);}});
+  return '<div class="fld"><div class="lbl">'+fd.l+'</div><div class="chips">'+names.map(function(n){var c=seq.filter(function(x){return x===n;}).length;
+   return '<button type="button" class="chip'+(c?' on':'')+'" data-act="touch" data-k="'+fd.k+'" data-v="'+esc(n)+'" aria-label="'+esc(disp(n))+', kontakty: '+c+'">'+esc(disp(n))+(c?' · '+c:'')+'</button>';}).join('')+'</div>'
+   +'<div class="row" style="margin-top:8px"><b>Razem: '+seq.length+'</b><button type="button" class="btn" data-act="untouch" data-k="'+fd.k+'" style="min-height:34px">Cofnij ostatni</button><button type="button" class="btn" data-act="cleartouch" data-k="'+fd.k+'" style="min-height:34px">Wyczyść</button></div></div>';
+ }
  if(fd.type==='grid'){return '<div class="fld"><div class="lbl">'+fd.l+'</div><div class="goal">'+SPOTS.map(function(sp){return '<button type="button" class="'+(f[fd.k]===sp?'on':'')+'" data-act="set" data-k="'+fd.k+'" data-v="'+sp+'" aria-label="'+sp+'" aria-pressed="'+(f[fd.k]===sp)+'"></button>';}).join('')+'</div></div>';}
  var opts=typeof fd.o==='function'?fd.o(f):fd.o;
  if(f[fd.k]&&opts.indexOf(f[fd.k])<0){opts=opts.concat([f[fd.k]]);}
@@ -389,7 +406,7 @@ function fieldHTML(fd,f){
 }
 function formEvent(){
  var F=UI.form,f=F.f,e={type:F.type,team:(F.type==='duel'||f.team==='Pilica')?'P':'R',half:F.half,min:F.min};
- Object.keys(f).forEach(function(k){if(k!=='team'){e[k]=f[k];}});
+ Object.keys(f).forEach(function(k){if(k!=='team'&&k.charAt(0)!=='_'){e[k]=f[k];}});
  var p=UI.pts[0],q=UI.pts[1];
  if(!p&&F.type==='shot'&&f.phase==='Karny'){p={x:e.team==='R'?11:94,y:34};}
  if(p){e.x=p.x;e.y=p.y;}
@@ -411,6 +428,7 @@ function normalize(F){
  var f=F.f;
  if(F.type==='duel'){var o=OUTS[f.side+'|'+f.res];if(o.indexOf(f.out)<0){f.out=o[0];}}
  if(F.type==='shot'&&f.phase==='Karny'){f.atype='Brak';}
+ if(F.type==='wej'&&isP(f)&&f.player&&(!f.tseq.length||(f.tseq.length===1&&f.tseq[0]===f._auto))){f.tseq=[f.player];f._auto=f.player;}
 }
 function newForm(type){
  var m=M();if(!m){return;}
@@ -422,7 +440,8 @@ function newForm(type){
 function editForm(id){
  var m=M(),e=m.events.filter(function(x){return x.id===id;})[0];if(!e){return;}
  var f=JSON.parse(JSON.stringify(DEFS[e.type].d));
- Object.keys(f).forEach(function(k){if(e[k]!==undefined){f[k]=e[k];}});
+ Object.keys(f).forEach(function(k){if(e[k]!==undefined){f[k]=JSON.parse(JSON.stringify(e[k]));}});
+ if(e.type==='wej'&&e.team==='P'&&e.tseq===undefined){f.tseq=[];for(var q=0;q<(Number(e.contacts)||0);q++){f.tseq.push(e.player);}}
  if('team' in f){f.team=e.team==='P'?'Pilica':'Rywal';}
  if(e.team==='R'&&'player' in f&&e.type!=='duel'){f.player='';}
  UI.form={type:e.type,f:f,half:e.half,min:e.min,editId:id,vt:e.vt};
@@ -511,19 +530,21 @@ function teamStats(evs){
   if(d.odb){add(t,h,'odb');add(t,h,'odb'+zoneOf(e));if(d.odbK){add(t,h,'odbK');}if((t==='P'&&e.x>52.5)||(t==='R'&&e.x<52.5)){add(t,h,'odbPR');}}
   if(d.str){add(t,h,'str');add(t,h,'str'+zoneOf(e));if(d.strG){add(t,h,'strG');}}
   if(d.wej){add(t,h,'wej');add(t,h,'wej'+sectorOf(e));}
-  if(e.type==='wej'){add(t,h,'kont',Number(e.contacts)||0);}
+  if(d.wej){add(t,h,'kont',d.kont);}
   if(e.type==='cross'||(e.type==='sfg'&&e.kind!=='Karny'&&e.play==='Dośrodkowanie')){add(t,h,'dosr');if((e.type==='cross'?e.res:e.acc)==='Celne'){add(t,h,'dosrC');}}
   if(e.type==='sfg'){add(t,h,'sfg');}
  });
  return A;
 }
 function playerStats(ms){
- var P={};function g(n){if(!P[n]){P[n]={min:0,strz:0,gole:0,xg:0,as:0,xa:0,duze:0,d1:0,d1w:0,da:0,daw:0,odb:0,str:0,strG:0,wej:0,dos:0,dosC:0,sfgW:0};}return P[n];}
+ var P={};function g(n){if(!P[n]){P[n]={min:0,strz:0,gole:0,xg:0,as:0,xa:0,duze:0,d1:0,d1w:0,da:0,daw:0,odb:0,str:0,strG:0,wej:0,wejPod:0,kon:0,dos:0,dosC:0,sfgW:0};}return P[n];}
  ms.forEach(function(m){
   var iv=intervals(m);Object.keys(iv).forEach(function(n){g(n).min+=iv[n].min;});
   m.events.forEach(function(e){
    var d=derive(e);
    if(d.duel&&d.duelPlayer){var q=g(d.duelPlayer);if(d.duelKind==='W powietrzu'){q.da++;q.daw+=d.duelWon;}else{q.d1++;q.d1w+=d.duelWon;}}
+   if(d.wej&&e.team==='P'&&e.tseq){e.tseq.forEach(function(n){g(n).kon++;});}
+   if(e.type==='wej'&&e.team==='P'&&e.passer&&e.passer!=='Brak'){g(e.passer).wejPod++;}
    if(e.team!=='P'||!e.player){return;}
    var p=g(e.player);
    if(e.type==='shot'){var c=shotCalc(e);p.strz++;p.xg+=c.xg;p.gole+=d.goal;p.duze+=d.big;if(e.assist&&e.assist!=='Brak'){var a=g(e.assist);a.xa+=c.xg;a.as+=d.goal;}}
@@ -544,10 +565,10 @@ function sumHTML(){
  var rows=SROWS.map(function(r){var rivalNA=(r[0]==='poj'||r[0]==='pojW');
   return '<tr><td>'+r[1]+'</td>'+[1,2,0].map(function(h){return '<td class="num">'+v('P',h,r[0])+'</td>';}).join('')+[1,2,0].map(function(h){return '<td class="num">'+(rivalNA?'–':v('R',h,r[0]))+'</td>';}).join('')+'</tr>';}).join('');
  var P=playerStats(ms),names=Object.keys(P).sort(function(a,b){return DB.roster.indexOf(a)-DB.roster.indexOf(b);});
- var prow=names.map(function(n){var p=P[n];return '<tr><td>'+esc(n)+'</td><td class="num">'+p.min+'</td><td class="num">'+p.strz+'</td><td class="num">'+p.gole+'</td><td class="num">'+f2(p.xg)+'</td><td class="num">'+p.as+'</td><td class="num">'+f2(p.xa)+'</td><td class="num">'+p.duze+'</td><td class="num">'+p.d1w+' / '+p.d1+'</td><td class="num">'+p.daw+' / '+p.da+'</td><td class="num">'+p.odb+'</td><td class="num">'+p.str+'</td><td class="num">'+p.strG+'</td><td class="num">'+p.wej+'</td><td class="num">'+p.dosC+' / '+p.dos+'</td><td class="num">'+p.sfgW+'</td></tr>';}).join('');
+ var prow=names.map(function(n){var p=P[n];return '<tr><td>'+esc(n)+'</td><td class="num">'+p.min+'</td><td class="num">'+p.strz+'</td><td class="num">'+p.gole+'</td><td class="num">'+f2(p.xg)+'</td><td class="num">'+p.as+'</td><td class="num">'+f2(p.xa)+'</td><td class="num">'+p.duze+'</td><td class="num">'+p.d1w+' / '+p.d1+'</td><td class="num">'+p.daw+' / '+p.da+'</td><td class="num">'+p.odb+'</td><td class="num">'+p.str+'</td><td class="num">'+p.strG+'</td><td class="num">'+p.wej+'</td><td class="num">'+p.wejPod+'</td><td class="num">'+p.kon+'</td><td class="num">'+p.dosC+' / '+p.dos+'</td><td class="num">'+p.sfgW+'</td></tr>';}).join('');
  return '<div class="card"><div class="row" style="justify-content:space-between;margin-bottom:10px"><h2 style="margin:0">Statystyki drużyn</h2>'+chipRow('Zakres','sscope',['Ten mecz','Sezon'],sc)+'</div>'
  +'<div class="scroll"><table><thead><tr><th></th><th class="num">Pilica I poł.</th><th class="num">Pilica II poł.</th><th class="num">Pilica razem</th><th class="num">Rywal I poł.</th><th class="num">Rywal II poł.</th><th class="num">Rywal razem</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>'
- +'<div class="card"><h2>Zawodnicy Pilicy</h2><div class="scroll"><table><thead><tr><th>Zawodnik</th><th class="num">Min</th><th class="num">Strzały</th><th class="num">Gole</th><th class="num">xG</th><th class="num">Asysty</th><th class="num">xA</th><th class="num">Duże szanse</th><th class="num">1v1 wygr. / razem</th><th class="num">Powietrze wygr. / razem</th><th class="num">Odbiory</th><th class="num">Straty</th><th class="num">Groźne straty</th><th class="num">Wejścia w pk</th><th class="num">Dośr. celne / razem</th><th class="num">Wywalczone SFG</th></tr></thead><tbody>'+prow+'</tbody></table></div><p class="note">Minuty liczą się ze składu i zmian. Bez wpisanego składu wynoszą 0.</p></div>';
+ +'<div class="card"><h2>Zawodnicy Pilicy</h2><div class="scroll"><table><thead><tr><th>Zawodnik</th><th class="num">Min</th><th class="num">Strzały</th><th class="num">Gole</th><th class="num">xG</th><th class="num">Asysty</th><th class="num">xA</th><th class="num">Duże szanse</th><th class="num">1v1 wygr. / razem</th><th class="num">Powietrze wygr. / razem</th><th class="num">Odbiory</th><th class="num">Straty</th><th class="num">Groźne straty</th><th class="num">Wejścia w pk</th><th class="num">Zagrania w pk</th><th class="num">Kontakty w pk</th><th class="num">Dośr. celne / razem</th><th class="num">Wywalczone SFG</th></tr></thead><tbody>'+prow+'</tbody></table></div><p class="note">Minuty liczą się ze składu i zmian. Bez wpisanego składu wynoszą 0.</p></div>';
 }
 
 /* ---------- widok: skład ---------- */
@@ -585,15 +606,17 @@ function dataHTML(){
  +'<div><label class="lbl" for="nComp" style="display:block">Rozgrywki</label><select class="inp" id="nComp" style="width:100%"><option>Liga</option><option>Puchar</option><option>Sparing</option></select></div>'
  +'<div><label class="lbl" for="nRound" style="display:block">Kolejka lub runda</label><input class="inp" id="nRound" style="width:100%"></div></div>'
  +'<div class="row" style="margin-top:12px"><button class="btn pri" data-act="madd">Dodaj mecz</button>'+(UI.err?'<span class="err" style="margin:0">'+esc(UI.err)+'</span>':'')+'</div></div></div>'
- +'<div class="right"><div class="card"><h2>Plik Excel z logami</h2><p class="hint">Eksport zawiera wszystkie mecze: arkusze Zdarzenia, Mecze i Składy. Ten sam plik można wczytać z powrotem jako kopię zapasową albo na innym komputerze.</p>'
+ +'<div class="right"><div class="card"><h2>Plik Excel z logami</h2><p class="hint">Eksport zawiera wszystkie mecze: arkusze Zdarzenia, Mecze, Składy i Kontakty w pk. Ten sam plik można wczytać z powrotem jako kopię zapasową albo na innym komputerze.</p>'
  +'<div class="row"><button class="btn pri" data-act="export">Zapisz plik Excel</button><label class="btn" style="display:inline-flex;align-items:center">Wczytaj plik Excel<input type="file" id="impFile" accept=".xlsx" style="position:absolute;opacity:0;width:1px;height:1px"></label></div>'
  +(UI.msg?'<p class="tag">'+esc(UI.msg)+'</p>':'')+(memOnly?'<p class="err">Przeglądarka nie pozwala zapisywać danych lokalnie. Po każdej sesji zapisz plik Excel.</p>':'<p class="note">Dane zapisują się w tej przeglądarce na tym komputerze. Po każdym meczu zapisz plik Excel jako kopię.</p>')
  +'<h3>Kadra</h3><label class="lbl" for="rosterTa" style="display:block">Jeden zawodnik w wierszu (imię i nazwisko)</label><textarea class="inp" id="rosterTa">'+esc(DB.roster.join('\n'))+'</textarea><div class="row" style="margin-top:8px"><button class="btn" data-act="roster">Zapisz kadrę</button></div></div></div></div>';
 }
 
 /* ---------- eksport / import ---------- */
+function kontMap(e){var m={};(e.tseq||[]).forEach(function(n){m[n]=(m[n]||0)+1;});return m;}
+function kontStr(e){var m=kontMap(e);return Object.keys(m).map(function(n){return n+': '+m[n];}).join(', ');}
 function exportRows(){
- var ev=[],ma=[],sq=[];
+ var ev=[],ma=[],sq=[],ko=[];
  DB.matches.forEach(function(m){
   var name='Pilica Koniecpol vs '+m.opp+(m.date?' · '+m.date:''),p=0,r=0,xp=0,xr=0;
   sorted(m).forEach(function(e){
@@ -606,17 +629,18 @@ function exportRows(){
     'Odległość (m)':c?c.dist:'','Kąt (°)':c?c.angle:'','xG app':c?c.app:'','xG':c?c.xg:'','Gol':c?d.goal:'','Celny':c?d.onT:'','Duża szansa':c?d.big:'','Setka':c?(e.setka==='Tak'?1:0):'','Sam na sam':c?d.sam:'','Pusta bramka':c?d.empty:'','Blokujący':e.type==='shot'&&e.res==='Zablokowany'&&e.blocker!=='Brak'?e.blocker:'',
     'Pojedynek':d.duel,'Pojedynek typ':d.duelKind,'Pojedynek faza':d.duelSide,'Pojedynek wygrany':d.duel?d.duelWon:'','Pojedynek zawodnik':d.duelPlayer,'Skutek pojedynku':e.type==='duel'?e.out:'','Kartka':e.type==='duel'&&e.card!=='Brak'&&e.out.indexOf('aul')>=0?e.card:'',
     'Odbiór':d.odb,'Odbiór do kontry':d.odbK,'Strata':d.str,'Groźna strata':d.strG,'Doprowadziło do bramki':e.goal==='Tak'?1:0,
-    'Wejście w pk':d.wej,'Sposób wejścia':e.type==='wej'?e.how:e.type==='cross'&&d.wej?'Dośrodkowanie':e.type==='sfg'&&d.wej?'SFG':'','Kontakty w pk':e.type==='wej'?e.contacts:'','Zakończenie wejścia':e.type==='wej'?e.end:'',
+    'Wejście w pk':d.wej,'Sposób wejścia':e.type==='wej'?e.how:e.type==='cross'&&d.wej?'Dośrodkowanie':e.type==='sfg'&&d.wej?'SFG':'','Zagrał w pk':e.type==='wej'&&e.passer&&e.passer!=='Brak'?e.passer:'','Kontakty w pk':d.wej?d.kont:'','Kontakty zawodników':d.wej&&e.team==='P'&&e.tseq?kontStr(e):'','Zakończenie wejścia':e.type==='wej'?e.end:'',
     'Dośrodkowanie':(e.type==='cross'||(e.type==='sfg'&&e.kind!=='Karny'&&e.play==='Dośrodkowanie'))?1:0,'Dośrodkowanie celne':e.type==='cross'?(e.res==='Celne'?1:0):(e.type==='sfg'&&e.kind!=='Karny'&&e.play==='Dośrodkowanie')?(e.acc==='Celne'?1:0):'',
     'SFG typ':e.type==='sfg'?e.kind:'','SFG wywalczył':e.type==='sfg'?(e.won!=='Brak'?e.won:''):d.sfgWon,'SFG rozegranie':e.type==='sfg'&&e.kind!=='Karny'?e.play:'','Pierwszy kontakt':e.type==='sfg'&&e.kind!=='Karny'?e.first:'','Zakończone strzałem':(e.type==='cross'||(e.type==='sfg'&&e.kind!=='Karny'))?(e.shot==='Tak'?1:0):'',
     'Notatka':e.note||'','ID':e.id};
    ev.push(row);
+   if(d.wej&&e.team==='P'&&e.tseq){var km=kontMap(e);Object.keys(km).forEach(function(n){ko.push({'Mecz':name,'Data':m.date||'','Rywal':m.opp,'Połowa':e.half,'Minuta':e.min,'Zdarzenie':TNAME[e.type],'Zawodnik':n,'Kontakty':km[n],'ID zdarzenia':e.id});});}
    if(c){if(e.team==='P'){xp+=c.xg;p+=d.goal;}else{xr+=c.xg;r+=d.goal;}}
   });
   ma.push({'Mecz':name,'Data':m.date||'','Rywal':m.opp,'Miejsce':m.venue||'','Rozgrywki':m.comp||'','Kolejka':m.round||'','Gole Pilica':p,'Gole rywal':r,'xG Pilica':Math.round(xp*1000)/1000,'xG rywal':Math.round(xr*1000)/1000,'Liczba zdarzeń':m.events.length,'Długość meczu':Number(m.len)||90});
   var iv=intervals(m);Object.keys(iv).forEach(function(n){sq.push({'Mecz':name,'Data':m.date||'','Rywal':m.opp,'Zawodnik':n,'Pozycja':iv[n].pos,'Start':iv[n].start,'Od minuty':iv[n].from===null?'':iv[n].from,'Do minuty':iv[n].to===null?'':iv[n].to,'Minuty':iv[n].min});});
  });
- return {ev:ev,ma:ma,sq:sq};
+ return {ev:ev,ma:ma,sq:sq,ko:ko};
 }
 function doExport(){
  if(typeof XLSX==='undefined'){UI.msg='Nie udało się załadować biblioteki Excel. Sprawdź połączenie z internetem i odśwież stronę.';render();return;}
@@ -624,6 +648,7 @@ function doExport(){
  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(R.ev),'Zdarzenia');
  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(R.ma),'Mecze');
  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(R.sq),'Składy');
+ XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(R.ko.length?R.ko:[{'Mecz':'','Data':'','Rywal':'','Połowa':'','Minuta':'','Zdarzenie':'','Zawodnik':'','Kontakty':'','ID zdarzenia':''}]),'Kontakty w pk');
  var js=JSON.stringify(DB),chunks=[['Nie edytuj: kopia danych aplikacji']],i;
  for(i=0;i<js.length;i+=30000){chunks.push([js.slice(i,i+30000)]);}
  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(chunks),'_dane');
@@ -667,6 +692,9 @@ document.addEventListener('click',function(ev){
   case 'new':newForm(v);return;
   case 'edit':editForm(b.dataset.id);return;
   case 'set':UI.form.f[b.dataset.k]=v;normalize(UI.form);UI.err='';break;
+  case 'touch':UI.form.f[b.dataset.k].push(v);UI.form.f._auto=null;break;
+  case 'untouch':UI.form.f[b.dataset.k].pop();UI.form.f._auto=null;break;
+  case 'cleartouch':UI.form.f[b.dataset.k]=[];UI.form.f._auto=null;break;
   case 'num':UI.form.f[b.dataset.k]=Math.max(1,(Number(UI.form.f[b.dataset.k])||1)+Number(b.dataset.d));break;
   case 'save':saveForm();return;
   case 'cancel':UI.form=null;UI.err='';UI.pts=[];break;
