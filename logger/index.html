@@ -329,9 +329,9 @@ function heatVal(x,y){
 function heatImg(){
  if(!UI.heat){return '';}
  if(!HEAT){
-  try{var NX=60,NY=40,S=14,c=document.createElement('canvas');c.width=NX*S;c.height=NY*S;var g=c.getContext('2d'),i,j;
-   for(j=0;j<NY;j++){for(i=0;i<NX;i++){g.fillStyle=heatCss(heatVal((i+0.5)*105/NX,(j+0.5)*68/NY));g.fillRect(i*S+1,j*S+1,S-2,S-2);}}
-   HEAT=c.toDataURL('image/png');}catch(e){HEAT='';}
+  try{var W=315,H=204,c=document.createElement('canvas');c.width=W;c.height=H;var g=c.getContext('2d'),im=g.createImageData(W,H),i,j,k,col;
+   for(j=0;j<H;j++){for(i=0;i<W;i++){col=heatCol(heatVal((i+0.5)*105/W,(j+0.5)*68/H));k=(j*W+i)*4;im.data[k]=col[0];im.data[k+1]=col[1];im.data[k+2]=col[2];im.data[k+3]=Math.round(255*col[3]);}}
+   g.putImageData(im,0,0);HEAT=c.toDataURL('image/png');}catch(e){HEAT='';}
  }
  return HEAT?'<image href="'+HEAT+'" x="0" y="0" width="105" height="68" preserveAspectRatio="none" pointer-events="none"/>':'';
 }
