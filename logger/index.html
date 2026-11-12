@@ -82,7 +82,7 @@ var memOnly=false;
 function loadDB(){try{var s=localStorage.getItem(KEY);if(s){var d=JSON.parse(s);if(d&&d.matches){DB=d;}}}catch(e){memOnly=true;}}
 function saveDB(){try{localStorage.setItem(KEY,JSON.stringify(DB));}catch(e){memOnly=true;}}
 var UI={heat:true,tab:'log',half:1,pts:[],form:null,err:'',confirm:null,
- map:{scope:'Ten mecz',team:'Obie',period:'Cały mecz',view:'Punkty',player:'Wszyscy',types:{shot:true,duel:true,air:true,odb:true,str:true,wej:false,cross:false,sfg:false}},
+ map:{scope:'Ten mecz',team:'Obie',period:'Cały mecz',view:'Punkty',player:'Wszyscy',assists:false,types:{shot:true,duel:true,air:true,odb:true,str:true,wej:false,cross:false,sfg:false}},
  sum:{scope:'Ten mecz'},msg:''};
 function M(){for(var i=0;i<DB.matches.length;i++){if(DB.matches[i].id===DB.cur){return DB.matches[i];}}return null;}
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
@@ -422,6 +422,7 @@ function formHTML(){
  +def.f.map(function(fd){return fieldHTML(fd,f);}).join('')
  +'<div class="fld"><label class="lbl" for="noteInp" style="display:block">Notatka</label><input class="inp" id="noteInp" style="width:100%" value="'+esc(f.note||'')+'"></div>'
  +'<div class="auto"><span class="lbl" style="display:block">Policzone automatycznie</span><b>'+(auto?esc(auto):'Zaznacz miejsce na boisku')+'</b></div>'
+ +(F.type==='shot'&&isP(f)&&f.assist!=='Brak'&&e.x2==null?'<div class="note" style="margin:-6px 0 12px">Nie zaznaczono miejsca asysty. Kliknij na boisku drugi punkt, jeśli chcesz je zapisać.</div>':'')
  +(UI.err?'<div class="err" role="alert">'+esc(UI.err)+'</div>':'')
  +'<div class="row"><button class="btn pri" data-act="save" style="flex:1 1 180px;min-height:48px">Zapisz (Enter)</button><button class="btn" data-act="cancel" style="min-height:48px">Anuluj (Esc)</button>'
  +(F.editId?'<button class="btn warn" data-act="del" data-id="'+F.editId+'" style="min-height:48px">'+(UI.confirm==='del'+F.editId?'Na pewno usunąć?':'Usuń')+'</button>':'')+'</div>';
@@ -484,6 +485,11 @@ var LEG={goal:'<circle cx="12" cy="12" r="9" fill="#7CC4FF"/>',saved:'<circle cx
  cross:'<path d="M2 12L21 12" fill="none" stroke="#7CC4FF" stroke-width="2.5" stroke-dasharray="5 4"/><path d="M15 6L21 12L15 18" fill="none" stroke="#7CC4FF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>',
  sfg:'<path d="M4 12L20 12M12 4L12 20" fill="none" stroke="#7CC4FF" stroke-width="2.5" stroke-linecap="round"/>'};
 function lg(k,t){return '<div><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">'+LEG[k]+'</svg><span>'+t+'</span></div>';}
+function assistLine(e){
+ if(e.type!=='shot'||e.x2==null){return '';}
+ var c=e.team==='R'?CR:CP;
+ return '<line x1="'+e.x2+'" y1="'+e.y2+'" x2="'+e.x+'" y2="'+e.y+'" stroke="'+c+'" stroke-width=".3" stroke-opacity=".75"/><circle cx="'+e.x2+'" cy="'+e.y2+'" r=".6" fill="'+c+'"/>';
+}
 function mapHTML(){
  var F=UI.map,all=allEvents(F.scope);
  var base=all.filter(function(e){
@@ -506,17 +512,18 @@ function mapHTML(){
  names.sort(function(a,b){return DB.roster.indexOf(a)-DB.roster.indexOf(b);});
  var tl=[['shot','Strzał','goal'],['duel','Pojedynek 1v1','dW'],['air','W powietrzu','aW'],['odb','Odbiór','odb'],['str','Strata','str'],['wej','Wejście w pk','wej'],['cross','Dośrodkowanie','cross'],['sfg','SFG','sfg']];
  return '<div class="card"><div class="row" style="justify-content:space-between;margin-bottom:10px"><h2 style="margin:0">Mapa zdarzeń</h2><span class="hint">Wyróżnione: '+main.length+' z '+all.length+' zdarzeń</span></div>'
- +'<div class="row" style="gap:10px 22px;margin-bottom:10px">'+chipRow('Zakres','mscope',['Ten mecz','Sezon'],F.scope)+chipRow('Drużyna','mteam',['Obie','Pilica','Rywal'],F.team)+chipRow('Okres','mperiod',['Cały mecz','I połowa','II połowa'],F.period)+chipRow('Widok','mview',['Punkty','Strefy'],F.view)+'<button class="chip'+(UI.heat?' on':'')+'" data-act="heat" aria-pressed="'+UI.heat+'">Mapa xG</button></div>'
+ +'<div class="row" style="gap:10px 22px;margin-bottom:10px">'+chipRow('Zakres','mscope',['Ten mecz','Sezon'],F.scope)+chipRow('Drużyna','mteam',['Obie','Pilica','Rywal'],F.team)+chipRow('Okres','mperiod',['Cały mecz','I połowa','II połowa'],F.period)+chipRow('Widok','mview',['Punkty','Strefy'],F.view)+'<button class="chip'+(UI.heat?' on':'')+'" data-act="heat" aria-pressed="'+UI.heat+'">Mapa xG</button><button class="chip'+(F.assists?' on':'')+'" data-act="massist" aria-pressed="'+F.assists+'">Linie asyst</button></div>'
  +'<div style="margin-bottom:10px">'+chipRow('Zawodnik','mplayer',['Wszyscy'].concat(names),F.player)+'</div>'
  +'<div class="row" style="margin-bottom:12px"><span style="font-size:12px;color:var(--mut)">Pokaż</span>'+tl.map(function(t){return '<button class="chip" data-act="mtype" data-v="'+t[0]+'" aria-pressed="'+F.types[t[0]]+'" style="display:flex;align-items:center;gap:8px;background:var(--card);border-color:'+(F.types[t[0]]?'var(--acc)':'var(--chipb)')+';opacity:'+(F.types[t[0]]?1:0.55)+'"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">'+LEG[t[2]]+'</svg>'+t[1]+' <span style="color:var(--sub)">'+cnt[t[0]]+'</span></button>';}).join('')+'</div>'
  +'<div class="cols"><div style="flex:999 1 560px;min-width:0"><svg class="pitch" viewBox="-2 -2 109 72" role="img" aria-label="Mapa zdarzeń na boisku">'+heatImg()+ZONE+pitchLines()
- +(F.view==='Punkty'?'<g opacity=".18">'+dim.map(iconSVG).join('')+'</g><g>'+main.map(iconSVG).join('')+'</g>':zones)+'</svg></div>'
+ +(F.view==='Punkty'?'<g opacity=".18">'+(F.assists?dim.map(assistLine).join(''):'')+dim.map(iconSVG).join('')+'</g><g>'+(F.assists?main.map(assistLine).join(''):'')+main.map(iconSVG).join('')+'</g>':zones)+'</svg></div>'
  +'<div style="flex:1 1 280px;min-width:0"><h3 style="margin-top:0">Legenda</h3><p class="hint" style="margin:0 0 10px">Niebieski: Pilica, pomarańczowy: rywal.</p>'
  +'<div class="lbl">Strzał (większe koło to wyższe xG)</div><div class="legend">'+lg('goal','Gol')+lg('saved','Obroniony')+lg('blk','Zablokowany')+lg('off','Niecelny')+'</div>'
  +'<div class="lbl" style="margin-top:12px">Pojedynek 1v1</div><div class="legend">'+lg('dW','Wygrany')+lg('dL','Przegrany')+'</div>'
  +'<div class="lbl" style="margin-top:12px">Pojedynek w powietrzu</div><div class="legend">'+lg('aW','Wygrany')+lg('aL','Przegrany')+'</div>'
  +'<div class="lbl" style="margin-top:12px">Odbiór i strata</div><div class="legend">'+lg('odb','Odbiór')+lg('str','Strata')+lg('strG','Groźna strata')+'</div>'
  +'<div class="lbl" style="margin-top:12px">Pozostałe</div><div class="legend">'+lg('wej','Wejście w pk')+lg('cross','Dośrodkowanie')+lg('sfg','SFG')+'</div>'
+ +'<p class="note">„Linie asyst” łączą miejsce podania (mała kropka) z miejscem strzału.</p>'
  +'<p class="note">Filtr „Odbiór” i „Strata” pokazuje też pojedynki, które skończyły się odbiorem albo stratą. Najedź na ikonę, żeby zobaczyć opis.</p></div></div></div>';
 }
 
@@ -627,7 +634,7 @@ function exportRows(){
     'Drużyna':own?'Pilica':'Rywal','Zdarzenie':TNAME[e.type],'Zawodnik':own?e.player:'Rywal','Wynik':resText(e),'Stan meczu':p+':'+r,
     'X (m)':e.x,'Y (m)':e.y,'X2 (m)':e.x2==null?'':e.x2,'Y2 (m)':e.y2==null?'':e.y2,
     'Strefa':zoneOf(e),'Tercja':e.x<35?'Obrona':e.x<70?'Środek':'Atak','Sektor':sectorOf(e),'Połowa rywala':e.x>52.5?1:0,
-    'Asysta':e.type==='shot'&&e.assist!=='Brak'?e.assist:'','Część ciała':e.body||'','Faza akcji':e.phase||'','Typ asysty':e.type==='shot'?e.atype:'','Presja':e.type==='shot'&&e.phase!=='Karny'?PRESS[e.press]:'','Obrońcy w świetle bramki':e.type==='shot'&&e.phase!=='Karny'?e.def:'','Bramkarz':e.type==='shot'&&e.phase!=='Karny'?e.gk:'','Miejsce w bramce':e.type==='shot'&&d.onT?e.spot:'',
+    'Asysta':e.type==='shot'&&e.assist!=='Brak'?e.assist:'','Asysta X (m)':e.type==='shot'&&e.x2!=null?e.x2:'','Asysta Y (m)':e.type==='shot'&&e.x2!=null?e.y2:'','Strefa asysty':e.type==='shot'&&e.x2!=null?zoneOf({team:e.team,type:e.type,x:e.x2}):'','Sektor asysty':e.type==='shot'&&e.x2!=null?sectorOf({team:e.team,type:e.type,y:e.y2}):'','Część ciała':e.body||'','Faza akcji':e.phase||'','Typ asysty':e.type==='shot'?e.atype:'','Presja':e.type==='shot'&&e.phase!=='Karny'?PRESS[e.press]:'','Obrońcy w świetle bramki':e.type==='shot'&&e.phase!=='Karny'?e.def:'','Bramkarz':e.type==='shot'&&e.phase!=='Karny'?e.gk:'','Miejsce w bramce':e.type==='shot'&&d.onT?e.spot:'',
     'Odległość (m)':c?c.dist:'','Kąt (°)':c?c.angle:'','xG app':c?c.app:'','xG':c?c.xg:'','Gol':c?d.goal:'','Celny':c?d.onT:'','Duża szansa':c?d.big:'','Setka':c?(e.setka==='Tak'?1:0):'','Sam na sam':c?d.sam:'','Pusta bramka':c?d.empty:'','Blokujący':e.type==='shot'&&e.res==='Zablokowany'&&e.blocker!=='Brak'?e.blocker:'',
     'Pojedynek':d.duel,'Pojedynek typ':d.duelKind,'Pojedynek faza':d.duelSide,'Pojedynek wygrany':d.duel?d.duelWon:'','Pojedynek zawodnik':d.duelPlayer,'Skutek pojedynku':e.type==='duel'?e.out:'','Kartka':e.type==='duel'&&e.card!=='Brak'&&e.out.indexOf('aul')>=0?e.card:'',
     'Odbiór':d.odb,'Odbiór do kontry':d.odbK,'Strata':d.str,'Groźna strata':d.strG,'Doprowadziło do bramki':e.goal==='Tak'?1:0,
@@ -710,6 +717,7 @@ document.addEventListener('click',function(ev){
   case 'mteam':UI.map.team=v;break;
   case 'mperiod':UI.map.period=v;break;
   case 'mview':UI.map.view=v;break;
+  case 'massist':UI.map.assists=!UI.map.assists;break;
   case 'mplayer':UI.map.player=v;break;
   case 'mtype':UI.map.types[v]=!UI.map.types[v];break;
   case 'sscope':UI.sum.scope=v;break;
